@@ -1,0 +1,2 @@
+scikit-image==0.13.1
+-e git+https://github.com/junteudjio/dicom_data_pipeline.git@develop#egg=dicom_data_pipeline-0.0.1
