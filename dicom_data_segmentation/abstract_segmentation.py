@@ -185,7 +185,7 @@ class AbstractSegmentation(object):
         savepath = os.path.join(self.results_dir, 'accumulator.{}.npz'.format(saved_results_keys))
         np.savez(savepath, **self.accumulators)
 
-    def fit(self, show_plots=False,
+    def fit(self, show_plots=False, max_plots=10,
                 results_to_accumulate=None):
         '''
         Applies the segmentation method to each sample in the dataset and save plots and results to disk.
@@ -193,6 +193,8 @@ class AbstractSegmentation(object):
         ----------
         show_plots: bool
             Show plots or not (tip: set to True when in jupyter notebook)
+        max_plots: int
+            Maximum number of patients for which to plot data (handy to not have huge notebooks for instance).
         results_to_accumulate: None | list
             list of computed intermediate values to accumulate when segmenting one sample.
             if None default to :
@@ -203,7 +205,7 @@ class AbstractSegmentation(object):
         '''
 
         self._init_accumulators(results_to_accumulate)
-
+        _initial_show_plots_value = show_plots
         segmentation_start = time.time()
         for sample_idx, sample in enumerate(self.data_iterator):
             self.logger.info('''
@@ -229,6 +231,13 @@ class AbstractSegmentation(object):
             
             '''.format(sample_idx, sample_end - sample_start))
 
+            # if max_plots reached, toggle show_plots off
+            if sample_idx >= max_plots: show_plots=False
+
+
+        # reset show_plots initial value
+        show_plots = _initial_show_plots_value
+
         segmentation_end = time.time()
         self.logger.info('''
         All Patients Segmentation done in {} seconds.
@@ -245,13 +254,21 @@ class AbstractSegmentation(object):
         Quantitative Statistics on Scores:
             dice_scores stats :
                 {dice_scores_stats}
+            dice_scores median :
+                {dice_scores_median}
+                
                 
             Intersection_over_Union_scores stats:
                 {iou_scores_stats}
+             Intersection_over_Union_scores median :
+                {iou_scores_median}
         
         ###########################################################################################
         '''.format(dice_scores_stats=stats.describe(self.accumulators['dice-score']),
-                   iou_scores_stats=stats.describe(self.accumulators['iou-score']) ))
+                   iou_scores_stats=stats.describe(self.accumulators['iou-score']),
+                   dice_scores_median=np.median(self.accumulators['dice-score']),
+                   iou_scores_median=np.median(self.accumulators['iou-score'])
+                   ))
 
         self.plot_scores_statistics(score_type='dice-score', show_plots=show_plots)
         self.plot_scores_statistics(score_type='iou-score', show_plots=show_plots)
