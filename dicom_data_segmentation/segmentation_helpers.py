@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 
 __author__ = 'Junior Teudjio'
 __all__ = ['mask2polygon', 'plot_img_polygons_overlay', 'dice_score', 'iou_score',
-           'plot_scores_histogram', 'plot_scores_qq', 'plot_scores_violin', 'plot_img_masks_overlay']
+           'plot_scores_histogram', 'plot_scores_qq', 'plot_scores_violin', 'plot_img_masks_overlay',
+           'plot_histograms_intersection']
 
 mask2polygon = lambda mask: measure.find_contours(mask, 0.8)[0]
 
@@ -52,6 +53,32 @@ def plot_img_masks_overlay(img, masks,  plot_ax, title=None):
     plot_ax.imshow(img)
     for mask in masks:
         plot_ax.imshow(mask, alpha=0.4)
+    if title: plot_ax.set_title(title)
+
+
+def plot_histograms_intersection(blood_pool, muscle, threshold, plot_ax, title=None):
+    '''
+    Plots the histograms intersection with the separating line
+    Parameters
+    ----------
+    blood_pool_mask: np.float array
+        normalized pixels of blood_pool
+    muscle_mask: np.float array
+        normalized pixels of muscle
+    threshold: float
+
+    Returns
+    -------
+
+    '''
+
+    plot_ax.hist(blood_pool, alpha=0.5, label='blood pool')
+    plot_ax.hist(muscle, alpha=0.5, label='muscle')
+    plot_ax.axvline(x=threshold, label='threshold', color='g')
+    plot_ax.legend()
+    plot_ax.xlabel('normalized pixels values - threshold={}'.format(threshold))
+    #if title: plt.set_title(title)
+
 
 
 def dice_score(true_mask, pred_mask):

@@ -45,13 +45,13 @@ class AbstractSegmentation(object):
         results_to_accumulate: None | list
             list of intermediate values to accumulate computed when segmenting one sample.
             if None default to :
-            ['dice-score', 'iou-score', 'o-polygon', 'i-polygon', 'pred-i-polygon']
+            ['dice-score', 'iou-score', 'o-polygon', 'i-polygon', 'pred-i-polygon', 'i-contours', 'pred-i-contour']
         Returns
         -------
         '''
         if not results_to_accumulate:
             results_to_accumulate = ['dice-score', 'iou-score',
-                                    'o-polygon', 'i-polygon', 'pred-i-polygon']
+                                    'o-polygon', 'i-polygon', 'pred-i-polygon', 'i-contours', 'pred-i-contour']
         self.results_to_accumulate = results_to_accumulate
         self.accumulators = dict()
         for result_key in self.results_to_accumulate:
@@ -168,7 +168,7 @@ class AbstractSegmentation(object):
         results_to_accumulate: None | list
             list of computed intermediate values to accumulate when segmenting one sample.
             if None default to :
-            ['dice-score', 'iou-score', 'o-polygon', 'i-polygon', 'pred-i-polygon']
+            ['dice-score', 'iou-score', 'o-polygon', 'i-polygon', 'pred-i-polygon', 'i-contours', 'pred-i-contour']
 
         Returns
         -------
