@@ -85,6 +85,17 @@ class AbstractSegmentation(object):
         self.logger = logger
 
     def pre_segmentation_enrich(self, sample):
+        '''
+        Enrich the sample dict with new data before the segmentation step
+        Parameters
+        ----------
+        sample: dict
+            expected keys: img, i-contours, o-contours
+
+        Returns
+        -------
+            added keys: img-norm, blood-pool-pixels, muscle-pixels, i-polygon, o-polygon
+        '''
         img, i_mask, o_mask = sample['img'], sample['i-contours'], sample['o-contours']
         # add normalized img
         sample['img-norm'] = img_norm = img / 255.
@@ -106,12 +117,36 @@ class AbstractSegmentation(object):
         pass
 
     def post_segmentation_enrich(self, sample):
+        '''
+        Enrich the sample dict with new data after the segmentation step
+        Parameters
+        ----------
+        sample: dict
+            expected keys: pred-i-contour
+
+        Returns
+        -------
+            added keys: pred-i-polygon
+        '''
         pred_i_polygon = segmentation_helpers.mask2polygon(sample['pred-i-contour'])
 
         # add pred-i-polygon
         sample['pred-i-polygon'] = pred_i_polygon
 
     def plot_segmentation_results__polygons(self, sample, show_plots=False):
+        '''
+        Plot ground truth and predicted polygons overlay on image.
+        Parameters
+        ----------
+        sample: dict
+           expected keys: img, o-polygon, i-polygon, pred-i-polygon
+
+        show_plots: bool
+
+        Returns
+        -------
+           added keys:
+       '''
         plt.clf()
 
         img, o_polygon, i_polygon, pred_i_polygon = sample['img'], sample['o-polygon'], \
@@ -129,6 +164,19 @@ class AbstractSegmentation(object):
         if show_plots: plt.show()
 
     def plot_segmentation_results__masks(self, sample, show_plots=False):
+        '''
+        Plot ground truth and predicted masks overlay on image.
+        Parameters
+        ----------
+        sample: dict
+           expected keys: img, o-contours, i-contours, pred-i-contour
+
+        show_plots: bool
+
+        Returns
+        -------
+           added keys:
+       '''
         plt.clf()
 
         img, o_contour, i_contour, pred_i_contour = sample['img'], sample['o-contours'], \
@@ -147,15 +195,50 @@ class AbstractSegmentation(object):
 
 
     def plot_segmentation_results(self, sample, show_plots=False):
+        '''
+        Plot ground truth and predicted polygons and masks overlay on image.
+        Parameters
+        ----------
+        sample: dict
+           expected keys: img, o-polygon, i-polygon, pred-i-polygon, o-contours, i-contours, pred-i-contour
+
+        show_plots: bool
+
+        Returns
+        -------
+           added keys:
+       '''
         self.plot_segmentation_results__polygons(sample, show_plots)
         self.plot_segmentation_results__masks(sample, show_plots)
 
     def compute_scores(self, sample):
+        '''
+        Compute the segmentation scores on this image.
+        Parameters
+        ----------
+        sample: dict
+           expected keys: i-contours, pred-i-contour
+
+        Returns
+        -------
+           added keys: dice-score, iou-score
+       '''
         true_mask, pred_mask = sample['i-contours'], sample['pred-i-contour']
         sample['dice-score'] = segmentation_helpers.dice_score(true_mask, pred_mask)
         sample['iou-score'] = segmentation_helpers.iou_score(true_mask, pred_mask)
 
     def accumulate_results(self, sample):
+        '''
+        Save some of the enriched sample data in an accumulator for aggregation/saving purporses.
+        Parameters
+        ----------
+        sample: dict
+           expected keys: see self.results_to_accumulate
+
+        Returns
+        -------
+           added keys:
+       '''
         for result_key in self.results_to_accumulate:
             # convert to numpy array if list
             if isinstance(sample[result_key], list):
@@ -166,6 +249,16 @@ class AbstractSegmentation(object):
                 self.accumulators[result_key].append(sample[result_key])
 
     def plot_scores_statistics(self, score_type='dice-score', show_plots=False):
+        '''
+        Plot some statistics on the scores over all images.
+        Parameters
+        ----------
+        score_type: basestring
+           The Id of the score to compute. one of : dice-score or iou-score
+
+        Returns
+        -------
+       '''
         plt.clf()
         scores = self.accumulators[score_type]
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -181,6 +274,10 @@ class AbstractSegmentation(object):
 
 
     def save_accumulated_results(self):
+        '''
+        Save the variables accumulated in self.accumulators over all samples to disk.
+        also see: self.results_to_accumulate , self._init_accumulators()
+       '''
         saved_results_keys = '.'.join(self.results_to_accumulate)
         savepath = os.path.join(self.results_dir, 'accumulator.{}.npz'.format(saved_results_keys))
         np.savez(savepath, **self.accumulators)
