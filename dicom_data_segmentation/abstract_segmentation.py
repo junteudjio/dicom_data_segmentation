@@ -84,24 +84,44 @@ class AbstractSegmentation(object):
         # add pred-i-polygon
         sample['pred-i-polygon'] = pred_i_polygon
 
-    def plot_segmentation_results(self, sample, show_plots=False):
+    def plot_segmentation_results__polygons(self, sample, show_plots=False):
         plt.clf()
 
-        img, o_polygon, i_polygon, pred_i_polygon = sample['img'], sample['o-polygon'],\
+        img, o_polygon, i_polygon, pred_i_polygon = sample['img'], sample['o-polygon'], \
                                                     sample['i-polygon'], sample['pred-i-polygon']
-        #print 'i_polygon = ', i_polygon
-        #print 'pred_i_polygon = ', pred_i_polygon
         fig, axes = plt.subplots(1, 2, figsize=(15, 15))
 
         segmentation_helpers.plot_img_polygons_overlay(img, (i_polygon, o_polygon), axes[0],
-                                                       title='true i-contour #{}'.format(self.sample_idx))
+                                                       title='true i-polygon #{}'.format(self.sample_idx))
 
         segmentation_helpers.plot_img_polygons_overlay(img, (pred_i_polygon, o_polygon), axes[1],
-                                                       title='pred i-contour #{}'.format(self.sample_idx))
+                                                       title='pred i-polygon #{}'.format(self.sample_idx))
 
-        savepath = os.path.join(self.plots_dir, '{}.img.i-contour.pred-contour.jpg'.format(self.sample_idx))
+        savepath = os.path.join(self.plots_dir, '{}.img.i-polygon.pred-polygon.jpg'.format(self.sample_idx))
         fig.savefig(savepath)
         if show_plots: plt.show()
+
+    def plot_segmentation_results__masks(self, sample, show_plots=False):
+        plt.clf()
+
+        img, o_contour, i_contour, pred_i_contour = sample['img'], sample['o-contours'], \
+                                                    sample['i-contours'], sample['pred-i-contour']
+        fig, axes = plt.subplots(1, 2, figsize=(15, 15))
+
+        segmentation_helpers.plot_img_masks_overlay(img, (i_contour, o_contour), axes[0],
+                                                       title='true i-mask #{}'.format(self.sample_idx))
+
+        segmentation_helpers.plot_img_masks_overlay(img, (pred_i_contour, o_contour), axes[1],
+                                                       title='pred i-mask #{}'.format(self.sample_idx))
+
+        savepath = os.path.join(self.plots_dir, '{}.img.i-mask.pred-mask.jpg'.format(self.sample_idx))
+        fig.savefig(savepath)
+        if show_plots: plt.show()
+
+
+    def plot_segmentation_results(self, sample, show_plots=False):
+        self.plot_segmentation_results__polygons(sample, show_plots)
+        self.plot_segmentation_results__masks(sample, show_plots)
 
     def compute_scores(self, sample):
         true_mask, pred_mask = sample['i-contours'], sample['pred-i-contour']

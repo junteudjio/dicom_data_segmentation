@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 __author__ = 'Junior Teudjio'
 __all__ = ['mask2polygon', 'plot_img_polygons_overlay', 'dice_score', 'iou_score',
-           'plot_scores_histogram', 'plot_scores_qq', 'plot_scores_violin', '']
+           'plot_scores_histogram', 'plot_scores_qq', 'plot_scores_violin', 'plot_img_masks_overlay']
 
 mask2polygon = lambda mask: measure.find_contours(mask, 0.8)[0]
 
@@ -13,7 +13,7 @@ _plots_colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'w']
 
 def plot_img_polygons_overlay(img, polygons, plot_ax, title=None):
     '''
-    Merge the img and contour points in a single figure and save to disk
+    Merge the img and polygons points in a single figure
     Parameters
     ----------
     img: numpy array
@@ -32,6 +32,27 @@ def plot_img_polygons_overlay(img, polygons, plot_ax, title=None):
         color = _plots_colors[idx % len(_plots_colors)]
         plot_ax.plot(polygon[:, 1], polygon[:, 0], color=color)
     if title: plot_ax.set_title(title)
+
+
+def plot_img_masks_overlay(img, masks,  plot_ax, title=None):
+    '''
+    Merge the img and masks in a single figure
+    Parameters
+    ----------
+    img: numpy array
+    masks: list of numpy array
+    plot_ax: matplotlib plt or ax object
+    title: basestring
+        title of the plot
+
+    Returns
+    -------
+
+    '''
+    plot_ax.imshow(img)
+    for mask in masks:
+        plot_ax.imshow(mask, alpha=0.4)
+
 
 def dice_score(true_mask, pred_mask):
     '''
