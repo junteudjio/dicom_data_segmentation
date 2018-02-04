@@ -58,9 +58,9 @@ class AbstractSegmentation(object):
             self.accumulators[result_key] = []
 
     def pre_segmentation_enrich(self, sample):
-        img, i_mask, o_mask = sample['img'], sample['i-contour'], sample['o-contour']
+        img, i_mask, o_mask = sample['img'], sample['i-contours'], sample['o-contours']
         # add normalized img
-        sample['img-norm'] = img_norm = img / 255.0
+        sample['img-norm'] = img_norm = img / 255.
 
         # add i-contour pixels values: blood pool
         sample['blood-pool-pixels'] = img_norm[i_mask]
@@ -86,15 +86,17 @@ class AbstractSegmentation(object):
 
     def plot_segmentation_results(self, sample, show_plots=False):
         plt.clf()
+
         img, o_polygon, i_polygon, pred_i_polygon = sample['img'], sample['o-polygon'],\
                                                     sample['i-polygon'], sample['pred-i-polygon']
+        #print 'i_polygon = ', i_polygon
+        #print 'pred_i_polygon = ', pred_i_polygon
+        fig, axes = plt.subplots(1, 2, figsize=(15, 15))
 
-        fig, axes = plt.subplots(1, 2, figsize=(15, 20))
-
-        segmentation_helpers.plot_img_polygons_overlay(img, (i_polygon, o_polygon), axes[0, 0],
+        segmentation_helpers.plot_img_polygons_overlay(img, (i_polygon, o_polygon), axes[0],
                                                        title='true i-contour #{}'.format(self.sample_idx))
 
-        segmentation_helpers.plot_img_polygons_overlay(img, (pred_i_polygon, o_polygon), axes[0, 1],
+        segmentation_helpers.plot_img_polygons_overlay(img, (pred_i_polygon, o_polygon), axes[1],
                                                        title='pred i-contour #{}'.format(self.sample_idx))
 
         savepath = os.path.join(self.plots_dir, '{}.img.i-contour.pred-contour.jpg'.format(self.sample_idx))
@@ -102,7 +104,7 @@ class AbstractSegmentation(object):
         if show_plots: plt.show()
 
     def compute_scores(self, sample):
-        true_mask, pred_mask = sample['i-contour', 'pred-i-contour']
+        true_mask, pred_mask = sample['i-contours'], sample['pred-i-contour']
         sample['dice-score'] = segmentation_helpers.dice_score(true_mask, pred_mask)
         sample['iou-score'] = segmentation_helpers.iou_score(true_mask, pred_mask)
 
@@ -112,20 +114,20 @@ class AbstractSegmentation(object):
             if isinstance(sample[result_key], list):
                 sample[result_key] = np.array(sample[result_key])
                 
-            # only accumulate if numpy array
-            if isinstance(sample[result_key], np.ndarray):
+            # only accumulate if numpy array or float
+            if isinstance(sample[result_key], np.ndarray) or isinstance(sample[result_key], float):
                 self.accumulators[result_key].append(sample[result_key])
 
     def plot_scores_statistics(self, score_type='dice-score', show_plots=False):
         plt.clf()
         scores = self.accumulators[score_type]
-        fig, axes = plt.subplots(1, 3, figsize=(15, 30))
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-        segmentation_helpers.plot_scores_violin(scores, axes[0, 0], title='{}s - violin plot'.format(score_type))
-        segmentation_helpers.plot_scores_histogram(scores, axes[0, 1], title='{}s - histogram'.format(score_type))
-        segmentation_helpers.plot_scores_qq(scores, axes[1, 2], title='{}s - QQ plot'.format(score_type))
+        segmentation_helpers.plot_scores_violin(scores, axes[0], title='{}s - violin plot (median)'.format(score_type))
+        segmentation_helpers.plot_scores_histogram(scores, axes[1], title='{}s - histogram'.format(score_type))
+        segmentation_helpers.plot_scores_qq(scores, axes[2], title='{}s - QQ plot'.format(score_type))
 
-        savepath = os.path.join(self.plots_dir, '{}.{}.violin-hist-qq-plots.jpg'.format(self.sample_idx, score_type))
+        savepath = os.path.join(self.plots_dir, '_scores.{}.violin-hist-qq-plots.jpg'.format(score_type))
         fig.savefig(savepath)
         if show_plots: plt.show()
 

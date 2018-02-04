@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 __author__ = 'Junior Teudjio'
 __all__ = ['mask2polygon', 'plot_img_polygons_overlay', 'dice_score', 'iou_score',
-           'plot_scores_hist', 'plot_scores_qq', 'plot_scores_violin', '']
+           'plot_scores_histogram', 'plot_scores_qq', 'plot_scores_violin', '']
 
 mask2polygon = lambda mask: measure.find_contours(mask, 0.8)[0]
 
@@ -27,10 +27,10 @@ def plot_img_polygons_overlay(img, polygons, plot_ax, title=None):
     '''
     plot_ax.imshow(img)
     for idx, polygon in enumerate(polygons):
-        x = [point[0] for point in polygon]
-        y = [point[1] for point in polygon]
+        if isinstance(polygon, list):
+            polygon = np.array(polygon)
         color = _plots_colors[idx % len(_plots_colors)]
-        plot_ax.plot(x, y, alpha=1, color=color)
+        plot_ax.plot(polygon[:, 1], polygon[:, 0], color=color)
     if title: plot_ax.set_title(title)
 
 def dice_score(true_mask, pred_mask):
@@ -45,9 +45,13 @@ def dice_score(true_mask, pred_mask):
     -------
     float
     '''
-    intersection = np.logical_and(pred_mask, true_mask).sum()
-    dice_score = (2.0 * intersection) / (pred_mask.sum() + true_mask.sum())
-    return dice_score
+    try:
+        intersection = np.logical_and(pred_mask, true_mask).sum()
+        score = (2.0 * intersection) / (pred_mask.sum() + true_mask.sum())
+    except ValueError:
+        score = 0.0
+    #print 'dice_score :', score
+    return score
 
 def iou_score(true_mask, pred_mask):
     '''
@@ -61,9 +65,14 @@ def iou_score(true_mask, pred_mask):
     -------
     float
     '''
-    intersection = np.logical_and(pred_mask, true_mask).sum()
-    union = np.logical_or(pred_mask, true_mask).sum()
-    return float(intersection) / union
+    try:
+        intersection = np.logical_and(pred_mask, true_mask).sum()
+        union = np.logical_or(pred_mask, true_mask).sum()
+        score = float(intersection) / union
+    except ValueError:
+        score = 0.0
+    #print 'iou_score :', score
+    return score
 
 def plot_scores_qq(scores, plot_ax, title=None):
     '''
@@ -94,12 +103,11 @@ def plot_scores_violin(scores, plot_ax, title=None):
     -------
 
     '''
-    plot_ax.violinplot(scores, points=200, vert=True, widths=1.1,
-                      showmeans=True, showextrema=True, showmedians=True,
-                      bw_method=0.5)
+    plot_ax.violinplot(scores, vert=True, widths=0.5,
+                      showmeans=False, showextrema=True, showmedians=True)
     if title: plot_ax.set_title(title)
 
-def plot_scores_hist(scores, plot_ax, title=None):
+def plot_scores_histogram(scores, plot_ax, title=None):
     '''
 
     Parameters
@@ -113,6 +121,6 @@ def plot_scores_hist(scores, plot_ax, title=None):
 
     '''
     # hist(x, 50, normed=1, facecolor='green', alpha=0.75)
-    plot_ax.hist(scores, 50, normed=1, facecolor='green', alpha=0.75)
+    plot_ax.hist(scores, normed=1, facecolor='green', alpha=0.75)
     if title: plot_ax.set_title(title)
 
