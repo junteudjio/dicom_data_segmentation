@@ -2,12 +2,9 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage as ndi
 
-from skimage.feature import peak_local_max
 from skimage.filters import threshold_otsu
 from skimage.segmentation import active_contour
-from skimage.morphology import watershed
 
 from abstract_segmentation import AbstractSegmentation
 import segmentation_helpers
@@ -21,24 +18,28 @@ __all__ = ['FixedThresholdSegmentation', 'FlexibleThresholdSegmentation', 'Activ
 class AbstractThresholdSegmentation(AbstractSegmentation):
     def plot_segmentation_results(self, sample, show_plots=False):
         # in addition to these parent plots, histogram approaches also plots the histograms intersection
-        super(AbstractThresholdSegmentation, self).plot_segmentation_results(sample, show_plots=False)
+        super(AbstractThresholdSegmentation, self).plot_segmentation_results(sample, show_plots=show_plots)
 
         # now plot the histograms intersection
         plt.clf()
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10,5))
         title='hist intersect - sample: #{} - threshold: {}'.format(self.sample_idx, sample['threshold'])
         segmentation_helpers.plot_histograms_intersection(sample['blood-pool-pixels'], sample['muscle-pixels'],
-                                                          sample['threshold'], plt, title)
-
+                                                          sample['threshold'], plt)
+        fig.suptitle(title, fontsize=15)
         savepath = os.path.join(self.plots_dir, '{}.hist-intersect.jpg'.format(self.sample_idx))
         fig.savefig(savepath)
         if show_plots: plt.show()
 
         
 class FixedThresholdSegmentation(AbstractThresholdSegmentation):
-    def __init__(self, data_iterator, segmentation_method, plots_prefix, results_prefix, threshold=0.3):
+    def __init__(self, data_iterator, segmentation_method,
+                 plots_prefix='_plots', results_prefix='_results', logs_prefix='_logs', threshold=0.3):
         super(FixedThresholdSegmentation, self).__init__(data_iterator,
-                                                         segmentation_method, plots_prefix, results_prefix)
+                                                         segmentation_method,
+                                                         plots_prefix,
+                                                         results_prefix,
+                                                         logs_prefix)
 
         self.threshold = threshold
 

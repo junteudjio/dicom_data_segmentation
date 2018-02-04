@@ -1,7 +1,10 @@
 import os
 import abc
+import logging
+import time
 
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 
 import segmentation_helpers
@@ -14,7 +17,8 @@ class AbstractSegmentation(object):
     '''Abstract class on which all segmentation experiments are built by defining the do_segmentation method'''
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, data_iterator, segmentation_method, plots_prefix, results_prefix):
+    def __init__(self, data_iterator, segmentation_method,
+                 plots_prefix='_plots', results_prefix='_results', logs_prefix='_logs'):
         '''
         Construct the Segmentation experiment object
         Parameters
@@ -28,14 +32,20 @@ class AbstractSegmentation(object):
             The prefix of directory where to save all plots.
         results_prefix: basestring
             The prefix of directory where to save the accumulated results.
+        logs_prefix: basestring
+            The prefix of directory where to save the logs files.
         '''
         self.data_iterator = data_iterator
         self.segmentation_method = segmentation_method
 
         self.plots_dir = os.path.join(plots_prefix, segmentation_method)
         self.results_dir = os.path.join(results_prefix, segmentation_method)
+        self.logs_prefix = logs_prefix
         utils.mkdir_p(self.plots_dir)
         utils.mkdir_p(self.results_dir)
+        utils.mkdir_p(self.logs_prefix)
+
+        self._set_logger()
 
     def _init_accumulators(self, results_to_accumulate=None):
         '''
@@ -56,6 +66,23 @@ class AbstractSegmentation(object):
         self.accumulators = dict()
         for result_key in self.results_to_accumulate:
             self.accumulators[result_key] = []
+
+    def _set_logger(self):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(levelname)s:%(asctime)s:%(name)s:%(message)s')
+
+        file_handler = logging.FileHandler(os.path.join(self.logs_prefix, '{}.log'.format(self.segmentation_method)))
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+
+        logger.addHandler(file_handler)
+        logger.addHandler(stream_handler)
+
+        self.logger = logger
 
     def pre_segmentation_enrich(self, sample):
         img, i_mask, o_mask = sample['img'], sample['i-contours'], sample['o-contours']
@@ -89,7 +116,7 @@ class AbstractSegmentation(object):
 
         img, o_polygon, i_polygon, pred_i_polygon = sample['img'], sample['o-polygon'], \
                                                     sample['i-polygon'], sample['pred-i-polygon']
-        fig, axes = plt.subplots(1, 2, figsize=(15, 15))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
         segmentation_helpers.plot_img_polygons_overlay(img, (i_polygon, o_polygon), axes[0],
                                                        title='true i-polygon #{}'.format(self.sample_idx))
@@ -106,7 +133,7 @@ class AbstractSegmentation(object):
 
         img, o_contour, i_contour, pred_i_contour = sample['img'], sample['o-contours'], \
                                                     sample['i-contours'], sample['pred-i-contour']
-        fig, axes = plt.subplots(1, 2, figsize=(15, 15))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
         segmentation_helpers.plot_img_masks_overlay(img, (i_contour, o_contour), axes[0],
                                                        title='true i-mask #{}'.format(self.sample_idx))
@@ -147,6 +174,7 @@ class AbstractSegmentation(object):
         segmentation_helpers.plot_scores_histogram(scores, axes[1], title='{}s - histogram'.format(score_type))
         segmentation_helpers.plot_scores_qq(scores, axes[2], title='{}s - QQ plot'.format(score_type))
 
+        fig.suptitle('Segmentation {}s statistics over all patients'.format(score_type), fontsize=15)
         savepath = os.path.join(self.plots_dir, '_scores.{}.violin-hist-qq-plots.jpg'.format(score_type))
         fig.savefig(savepath)
         if show_plots: plt.show()
@@ -176,7 +204,15 @@ class AbstractSegmentation(object):
 
         self._init_accumulators(results_to_accumulate)
 
+        segmentation_start = time.time()
         for sample_idx, sample in enumerate(self.data_iterator):
+            self.logger.info('''
+            Doing {} on patient #{}
+            ###########################################################################################'''.format(
+                self.segmentation_method, sample_idx
+            ))
+            sample_start = time.time()
+
             self.sample_idx = sample_idx #implicitly pass the idx to subsequent methods to keep a clean api.
             self.pre_segmentation_enrich(sample)
             self.do_segmentation(sample)
@@ -184,7 +220,39 @@ class AbstractSegmentation(object):
             self.plot_segmentation_results(sample, show_plots)
             self.compute_scores(sample)
             self.accumulate_results(sample)
+
+            sample_end = time.time()
+
+            self.logger.info('''
+            Patient #{} data segmentation done in {} seconds.
+            ###########################################################################################
             
+            '''.format(sample_idx, sample_end - sample_start))
+
+        segmentation_end = time.time()
+        self.logger.info('''
+        All Patients Segmentation done in {} seconds.
+        ###########################################################################################
+        
+        '''.format( segmentation_end - segmentation_start))
+
+        self.logger.info('''
+        Segmentation Scores statistics over all patients :
+        ###########################################################################################
+        '''.format(segmentation_end - segmentation_start))
+
+        self.logger.info('''
+        Quantitative Statistics on Scores:
+            dice_scores stats :
+                {dice_scores_stats}
+                
+            Intersection_over_Union_scores stats:
+                {iou_scores_stats}
+        
+        ###########################################################################################
+        '''.format(dice_scores_stats=stats.describe(self.accumulators['dice-score']),
+                   iou_scores_stats=stats.describe(self.accumulators['iou-score']) ))
+
         self.plot_scores_statistics(score_type='dice-score', show_plots=show_plots)
         self.plot_scores_statistics(score_type='iou-score', show_plots=show_plots)
         self.save_accumulated_results()

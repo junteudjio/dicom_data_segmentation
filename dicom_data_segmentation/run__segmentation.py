@@ -17,7 +17,8 @@ FixedThresholdSegmentation(
     data_iterator = get_data_iterator(),
     segmentation_method = FixedThresholdSegmentation.__name__,
     plots_prefix = '_plots',
-    results_prefix = '_results'
+    results_prefix = '_results',
+    logs_prefix = '_logs'
 ).fit()
 
 ########################################################################################################################
@@ -27,7 +28,8 @@ FlexibleThresholdSegmentation(
     data_iterator = get_data_iterator(),
     segmentation_method = FlexibleThresholdSegmentation.__name__,
     plots_prefix = '_plots',
-    results_prefix = '_results'
+    results_prefix = '_results',
+    logs_prefix = '_logs'
 ).fit()
 
 
@@ -38,5 +40,6 @@ ActiveContourSegmentation(
     data_iterator = get_data_iterator(),
     segmentation_method = ActiveContourSegmentation.__name__,
     plots_prefix = '_plots',
-    results_prefix = '_results'
+    results_prefix = '_results',
+    logs_prefix = '_logs'
 ).fit()
