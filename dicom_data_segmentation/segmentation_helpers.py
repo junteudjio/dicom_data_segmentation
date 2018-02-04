@@ -76,7 +76,7 @@ def plot_histograms_intersection(blood_pool, muscle, threshold, plot_ax, title=N
     plot_ax.hist(muscle, alpha=0.5, label='muscle')
     plot_ax.axvline(x=threshold, label='threshold', color='g')
     plot_ax.legend()
-    plot_ax.xlabel('normalized pixels values - threshold={}'.format(threshold))
+    plot_ax.xlabel('normalized pixels values - threshold={:1f}'.format(threshold))
     #if title: plt.set_title(title)
 
 
